@@ -88,8 +88,8 @@ function TestaUxPlay($rotulo, $porta, $extra, $pastaDeTrabalho, $registro) {
     if ($vivo) { $portas = Get-NetTCPConnection -State Listen -OwningProcess $p.Id -ErrorAction SilentlyContinue | ForEach-Object { $_.LocalPort } | Sort-Object -Unique }
     if ($vivo) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
     $ouvinte.Stop()
-    if ($vivo) { Ok "$rotulo: UxPlay de pé" } else { Falhou "$rotulo: UxPlay caiu (código $($p.ExitCode))" ((Get-Content "$Saida\$registro.out.log", "$Saida\$registro.err.log" -ErrorAction SilentlyContinue) | Select-Object -Last 15) }
-    if ($vivo) { if ($portas.Count -gt 0) { Ok "$rotulo: escutando nas portas $($portas -join ', ')" } else { Falhou "$rotulo: nenhuma porta aberta" } }
+    if ($vivo) { Ok "${rotulo}: UxPlay de pé" } else { Falhou "${rotulo}: UxPlay caiu (código $($p.ExitCode))" ((Get-Content "$Saida\$registro.out.log", "$Saida\$registro.err.log" -ErrorAction SilentlyContinue) | Select-Object -Last 15) }
+    if ($vivo) { if ($portas.Count -gt 0) { Ok "${rotulo}: escutando nas portas $($portas -join ', ')" } else { Falhou "${rotulo}: nenhuma porta aberta" } }
 }
 TestaUxPlay 'UxPlay' 7400 '' $Pasta 'uxplay'
 TestaUxPlay 'UxPlay com -mp4' 7410 '-mp4 iPhone_2026-09-30_15.00.00' $comEspaco 'uxplay-mp4'

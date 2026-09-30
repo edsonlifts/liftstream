@@ -2,6 +2,10 @@ name: Windows
 
 # Compila o Liftstream para Windows numa máquina Windows do GitHub, prova a cópia sem o MSYS2 e, quando há um release,
 # anexa o Liftstream-Windows.zip a ele. O release do Mac (./publicar.sh) dispara isto sozinho.
+#
+# Dois trabalhos: "uxplay" é o pesado (MSYS2: compila o UxPlay e junta as DLLs, uns 8 minutos) e guarda as pastas como
+# artefato; "windows" compila a janela em C#, prova e empacota. Para ajustar só a prova ou a janela, rode com
+# reaproveitar=<número de uma execução anterior> e o trabalho pesado é pulado.
 on:
   release:
     types: [published]
@@ -11,30 +15,22 @@ on:
         description: "Release que recebe o zip (por exemplo v1.0.1). Vazio: só compila e prova, sem publicar."
         required: false
         default: ""
+      reaproveitar:
+        description: "Número de uma execução anterior cujas pastas (UxPlay e DLLs) serão reaproveitadas. Vazio: compila tudo."
+        required: false
+        default: ""
 
 permissions:
   contents: write
 
 jobs:
-  windows:
+  uxplay:
+    if: ${{ inputs.reaproveitar == '' }}
     runs-on: windows-latest
-    env:
-      TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Versão
-        id: versao
-        shell: pwsh
-        run: |
-          $plist = Get-Content Info.plist -Raw
-          $doPlist = [regex]::Match($plist, 'CFBundleShortVersionString</key>\s*<string>([^<]+)</string>').Groups[1].Value
-          $versao = if ($env:TAG) { $env:TAG.TrimStart('v') } else { $doPlist }
-          "versao=$versao" >> $env:GITHUB_OUTPUT
-          Write-Host "Versão: $versao (release: '$env:TAG')"
-
       - uses: msys2/setup-msys2@v2
-        id: msys2
         with:
           msystem: UCRT64
           update: true
@@ -66,10 +62,6 @@ jobs:
           ninja
           ls -la uxplay.exe
 
-      - name: Compilar a janela (C#)
-        shell: pwsh
-        run: dotnet build windows/Liftstream.csproj -c Release -p:Version=${{ steps.versao.outputs.versao }} -o windows/saida
-
       - name: Montar as pastas (envio e teste)
         shell: msys2 {0}
         env:
@@ -79,16 +71,53 @@ jobs:
           cd "$RAIZ"
           windows/empacotar-msys2.sh "$RAIZ/dist/Liftstream" "$RAIZ/uxplay-src/build/uxplay.exe"
           windows/empacotar-msys2.sh "$RAIZ/dist/teste" "$RAIZ/uxplay-src/build/uxplay.exe" teste
-          cp windows/saida/Liftstream.exe dist/Liftstream/
-          cp windows/saida/Liftstream.exe dist/teste/
-          ls dist/Liftstream | head -30
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pastas
+          path: dist/
+          compression-level: 3
+
+  windows:
+    needs: uxplay
+    if: ${{ !cancelled() && (needs.uxplay.result == 'success' || needs.uxplay.result == 'skipped') }}
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versão
+        id: versao
+        shell: pwsh
+        run: |
+          $plist = Get-Content Info.plist -Raw
+          $doPlist = [regex]::Match($plist, 'CFBundleShortVersionString</key>\s*<string>([^<]+)</string>').Groups[1].Value
+          $versao = if ($env:TAG) { $env:TAG.TrimStart('v') } else { $doPlist }
+          "versao=$versao" >> $env:GITHUB_OUTPUT
+          Write-Host "Versão: $versao (release: '$env:TAG')"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: pastas
+          path: dist
+          run-id: ${{ inputs.reaproveitar || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Compilar a janela (C#)
+        shell: pwsh
+        run: |
+          dotnet build windows/Liftstream.csproj -c Release -p:Version=${{ steps.versao.outputs.versao }} -o windows/saida
+          Copy-Item windows/saida/Liftstream.exe dist/Liftstream/
+          Copy-Item windows/saida/Liftstream.exe dist/teste/
+          Get-ChildItem dist/Liftstream | Measure-Object -Property Length -Sum | ForEach-Object { Write-Host "$($_.Count) arquivos na raiz, $([math]::Round($_.Sum / 1MB)) MB" }
 
       - name: Provar sem o MSYS2
         shell: pwsh
         run: |
           # Como num PC qualquer: o MSYS2 sai do caminho e o PATH do teste só tem o Windows e a pasta do app.
-          foreach ($d in @('C:\msys64', '${{ steps.msys2.outputs.msys2-location }}')) {
-            if ($d -and (Test-Path $d)) {
+          foreach ($d in @('C:\msys64')) {
+            if (Test-Path $d) {
               try { Rename-Item $d ($d + '-oculto') -ErrorAction Stop; Write-Host "MSYS2 escondido: $d" }
               catch { Write-Host "não deu para esconder $d ($($_.Exception.Message)); o PATH do teste já o exclui" }
             }
@@ -105,7 +134,9 @@ jobs:
 
       - name: Zip
         shell: pwsh
-        run: 7z a -tzip Liftstream-Windows.zip ./dist/Liftstream
+        run: |
+          7z a -tzip Liftstream-Windows.zip ./dist/Liftstream | Select-Object -Last 4
+          Get-Item Liftstream-Windows.zip | ForEach-Object { Write-Host "Liftstream-Windows.zip: $([math]::Round($_.Length / 1MB)) MB" }
 
       - uses: actions/upload-artifact@v4
         with:
