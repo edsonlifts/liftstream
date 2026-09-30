@@ -1,18 +1,18 @@
 # Liftstream
 
-Mostra a tela do iPhone numa janela flutuante no Mac, sem cabo, e grava em MP4 com o som do iPhone. Feito pela Clínica Lifts para gravar o celular enquanto se usa o Mac.
+Mostra a tela do iPhone numa janela flutuante no Mac ou no Windows, sem cabo, e grava em MP4 com o som do iPhone. Feito pela Clínica Lifts para gravar o celular enquanto se usa o Mac.
 
-O Mac aparece como um receptor AirPlay chamado "Liftstream". No iPhone: Central de Controle, Espelhar Tela, Liftstream.
+O computador aparece como um receptor AirPlay chamado "Liftstream". No iPhone: Central de Controle, Espelhar Tela, Liftstream.
 
 ## Baixar
 
-[**Baixar a última versão (Liftstream.zip)**](https://github.com/edsonlifts/liftstream/releases/latest/download/Liftstream.zip)
-
-Precisa de Mac com chip Apple (M1 ou mais novo) e macOS 26. O zip traz o app e o `LEIA-ME.txt` com o passo a passo. O app não é assinado pela Apple, então na primeira vez é preciso rodar no Terminal:
+**Mac:** [Liftstream.zip](https://github.com/edsonlifts/liftstream/releases/latest/download/Liftstream.zip). Precisa de chip Apple (M1 ou mais novo) e macOS 26. O zip traz o app e o `LEIA-ME.txt` com o passo a passo. O app não é assinado pela Apple, então na primeira vez é preciso rodar no Terminal:
 
 ```
 xattr -cr /Applications/Liftstream.app
 ```
+
+**Windows:** [Liftstream-Windows.zip](https://github.com/edsonlifts/liftstream/releases/latest/download/Liftstream-Windows.zip). Precisa de Windows 10 ou 11 de 64 bits. Extraia a pasta, abra o `Liftstream.exe` e libere o `uxplay.exe` no firewall em redes particulares. O `LEIA-ME.txt` do zip explica, inclusive o aviso do SmartScreen (o programa não tem assinatura paga da Microsoft).
 
 ## Atualizações
 
@@ -22,6 +22,7 @@ O app consulta os releases deste repositório no máximo uma vez por dia e avisa
 
 - `Liftstream.swift` (AppKit, arquivo único) abre um servidor TCP local e só depois inicia o [UxPlay](https://github.com/FDH2/UxPlay), que recebe o AirPlay e manda cada quadro como JPEG para o app.
 - O UxPlay e o GStreamer vão dentro do app (`Contents/Helpers` e `Contents/Frameworks`), então quem recebe não precisa instalar nada.
+- No Windows a janela é um app em C# (`windows/`, .NET Framework 4.8 com Windows Forms, que já vem no Windows 10 e 11) com o mesmo comportamento: recebe os quadros do UxPlay pela mesma porta local. O `uxplay.exe` e as DLLs do GStreamer vêm da compilação com MSYS2 (UCRT64) feita pelo GitHub Actions (`.github/workflows/windows.yml`), que prova a cópia sem o MSYS2 e anexa o `Liftstream-Windows.zip` ao release.
 
 ## Compilar
 
@@ -43,7 +44,7 @@ Suba `CFBundleShortVersionString` no `Info.plist` e rode:
 ./publicar.sh "o que mudou"
 ```
 
-O script compila, prova, empacota, envia o código e cria o release com o `Liftstream.zip`. Quem já tem o app recebe o aviso na próxima abertura.
+O script compila, prova, empacota, envia o código e cria o release com o `Liftstream.zip` (Mac). Ao ser publicado, o release dispara o workflow do Windows, que compila e anexa o `Liftstream-Windows.zip` alguns minutos depois. Quem já tem o app recebe o aviso na próxima abertura. Para anexar o Windows a um release que já existe: `gh workflow run windows.yml -f tag=v1.0.1`.
 
 ## Licenças
 
