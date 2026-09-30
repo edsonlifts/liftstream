@@ -1,0 +1,34 @@
+LIFTSTREAM
+Mostra a tela do iPhone numa janelinha flutuante no Mac, sem cabo, e grava em vídeo.
+
+O QUE PRECISA
+- Mac com chip Apple (M1 ou mais novo) e macOS 26 (Tahoe).
+- iPhone e Mac no mesmo Wi-Fi.
+
+INSTALAR (só na primeira vez)
+1. Arraste o Liftstream para a pasta Aplicativos.
+2. Abra o Terminal (aperte Command + Espaço, digite Terminal e dê Enter), cole a linha abaixo e dê Enter:
+
+   xattr -cr /Applications/Liftstream.app
+
+   Isso tira o aviso de "desenvolvedor não verificado". O app não passou pela loja da Apple, mas roda só o que está dentro dele.
+3. Abra o Liftstream. Se o Mac perguntar se ele pode aceitar conexões de rede ou acessar a rede local, clique em Permitir.
+
+USAR
+1. No iPhone, abra a Central de Controle, toque em Espelhar Tela e escolha "Liftstream".
+2. A tela do iPhone aparece numa janela que fica sempre na frente. Arraste para onde quiser. Passe o mouse em cima para ver o botão de fechar.
+3. No menu Janela: sempre na frente (Command T), deixar os cliques passarem (Command K), tamanho e opacidade.
+4. Para gravar: menu Gravar, Gravar em MP4 (Command R), e espelhe o iPhone de novo. O som do iPhone vai junto. Os vídeos ficam em Filmes, na pasta Liftstream.
+
+ATUALIZAR
+O Liftstream consulta o GitHub no máximo uma vez por dia e avisa quando sai versão nova. Você também pode pedir na hora: menu Liftstream, Verificar atualizações. Ele só pergunta qual é a última versão; não envia nada seu.
+Para atualizar: feche o Liftstream (Command Q), clique em Baixar no aviso, abra o zip, arraste o app novo para Aplicativos (substituindo o antigo) e cole de novo a linha do Terminal do passo 2.
+
+SE ALGO NÃO FUNCIONAR
+- Se o Mac disser que não pode abrir o app: Ajustes do Sistema, Privacidade e Segurança, e toque em Abrir Mesmo Assim.
+- Se o Liftstream não aparecer na lista do iPhone: confira se os dois estão no mesmo Wi-Fi, feche o Liftstream (Command Q) e abra de novo.
+- Se a imagem travar: feche o espelhamento no iPhone e espelhe de novo.
+- Para pedir ajuda, mande o arquivo Liftstream.log da pasta Biblioteca/Logs (dentro da sua pasta pessoal).
+
+Código e licenças: https://github.com/edsonlifts/liftstream
+Clínica Lifts · saúde 100% online
