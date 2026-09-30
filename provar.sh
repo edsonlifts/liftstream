@@ -69,4 +69,20 @@ if grep -i -E "missing|cannot|erro|error|failed|not found|no element" "$T/uxplay
   echo "AVISO  o registro do UxPlay tem estas linhas:"; grep -i -E "missing|cannot|erro|error|failed|not found|no element" "$T/uxplay.log" | head
 fi
 
+# Gravação pelo UxPlay: ele cola o nome no texto do pipeline sem aspas, então o app passa só um nome sem espaço
+# e põe a pasta (que pode ter espaço) no diretório de trabalho. Aqui a pasta tem espaço de propósito.
+mkdir -p "$T/pasta com espaço"
+nc -l 127.0.0.1 7179 > /dev/null 2>&1 &
+ouvinte=$!
+( cd "$T/pasta com espaço" && exec "${sem_brew[@]}" "$A/Helpers/uxplay" -n "Teste PIP" -nh -p 7410 -m 02:45:50:49:50:98 -d 1 -mp4 iPhone_2026-09-30_15.00.00 \
+  -vs "queue ! jpegenc ! multipartmux ! tcpclientsink host=127.0.0.1 port=7179" > "$T/uxplay-mp4.log" 2>&1 ) &
+pid=$!
+sleep 5
+if kill -0 $pid 2>/dev/null && ! grep -q "cannot be written" "$T/uxplay-mp4.log"; then
+  echo "ok     UxPlay aceita -mp4 com pasta de trabalho com espaço"
+else
+  echo "FALHOU UxPlay recusou -mp4"; tail -5 "$T/uxplay-mp4.log"; falhas=$((falhas + 1))
+fi
+kill $pid $ouvinte 2>/dev/null; wait $pid $ouvinte 2>/dev/null
+
 [[ $falhas -eq 0 ]] && echo "TUDO OK" || { echo "$falhas falha(s)"; exit 1; }

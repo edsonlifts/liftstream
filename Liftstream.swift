@@ -424,12 +424,16 @@ final class Aplicativo: NSObject, NSApplicationDelegate, NSWindowDelegate {
             "-d", "1",
             "-vs", "queue leaky=downstream max-size-buffers=2 ! jpegenc quality=85 ! multipartmux boundary=espelhopip ! tcpclientsink host=127.0.0.1 port=\(portaQuadros)",
         ]
+        var pastaDeGravacao: URL?
         if gravando {
             let pasta = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Movies/Liftstream")
             try? FileManager.default.createDirectory(at: pasta, withIntermediateDirectories: true)
             let formato = DateFormatter()
-            formato.dateFormat = "yyyy-MM-dd HH.mm.ss"
-            argumentos += ["-mp4", pasta.appendingPathComponent("iPhone \(formato.string(from: Date()))").path]
+            formato.dateFormat = "yyyy-MM-dd_HH.mm.ss"
+            // O UxPlay cola este nome, sem aspas, no texto do pipeline do GStreamer: com espaço (no nome ou na pasta)
+            // o pipeline é recusado e nada é gravado. Por isso vai só o nome, sem espaço, e a pasta vem do diretório de trabalho.
+            argumentos += ["-mp4", "iPhone_\(formato.string(from: Date()))"]
+            pastaDeGravacao = pasta
         }
 
         // A conexão TCP dos quadros fica aberta o tempo todo; quem avisa que o iPhone saiu é o registro do UxPlay.
@@ -453,6 +457,7 @@ final class Aplicativo: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let processo = Process()
         processo.executableURL = binario
         processo.arguments = argumentos
+        processo.currentDirectoryURL = pastaDeGravacao
         if let ambiente = ambienteEmbutido() { processo.environment = ambiente }
         processo.standardOutput = saida
         processo.standardError = saida
