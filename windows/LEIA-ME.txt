@@ -1,0 +1,33 @@
+LIFTSTREAM PARA WINDOWS
+Mostra a tela do iPhone numa janelinha flutuante no PC, sem cabo, e grava em vídeo.
+
+O QUE PRECISA
+- PC com Windows 10 ou 11 de 64 bits.
+- iPhone e PC no mesmo Wi-Fi.
+
+INSTALAR (só na primeira vez)
+1. Antes de abrir o zip: clique nele com o botão direito, Propriedades, marque "Desbloquear" (embaixo, na aba Geral) e OK. Isso evita o aviso do Windows na hora de abrir.
+2. Extraia o zip (botão direito, Extrair tudo) e deixe a pasta Liftstream onde quiser, por exemplo em Documentos. Não tire o Liftstream.exe de dentro dela: ele precisa dos outros arquivos da pasta.
+3. Abra o Liftstream.exe. Se aparecer "O Windows protegeu o computador", clique em Mais informações e depois em Executar assim mesmo. O programa não tem assinatura paga da Microsoft, mas roda só o que está dentro da pasta.
+4. O Windows vai perguntar se o uxplay.exe pode usar a rede. Marque "Redes particulares" e clique em Permitir acesso. Sem isso o iPhone não enxerga o Liftstream.
+
+USAR
+1. No iPhone, abra a Central de Controle, toque em Espelhar Tela e escolha "Liftstream".
+2. A tela do iPhone aparece numa janela que fica sempre na frente. Arraste pelo corpo da janela e redimensione pelas bordas.
+3. Clique com o botão direito na janela (ou no ícone do Liftstream perto do relógio) para abrir o menu: sempre na frente, deixar os cliques passarem, tamanho, opacidade e gravação.
+   Com "Deixar os cliques passarem" ligado a janela não recebe o mouse; para desligar, use o ícone perto do relógio.
+4. Para gravar: menu, Gravar em MP4 (com som do iPhone), e espelhe o iPhone de novo. Os vídeos ficam na pasta Vídeos, dentro de Liftstream.
+
+ATUALIZAR
+O Liftstream consulta o GitHub no máximo uma vez por dia e avisa quando sai versão nova. Você também pode pedir na hora: menu, Verificar atualizações. Ele só pergunta qual é a última versão; não envia nada seu.
+Para atualizar: feche o Liftstream (menu, Sair), baixe o zip novo pelo aviso e extraia por cima da pasta antiga.
+
+SE ALGO NÃO FUNCIONAR
+- O Liftstream não aparece na lista do iPhone: confira se os dois estão no mesmo Wi-Fi e se o Wi-Fi do PC está como rede Particular (Configurações, Rede e Internet, Wi-Fi, sua rede, Tipo de perfil de rede: Particular). Rede Pública bloqueia a descoberta. Redes de convidados e algumas redes de empresa também bloqueiam.
+- Se o iPhone ainda não vê: abra o Windows Defender Firewall, Permitir um aplicativo, e confira se o uxplay.exe está liberado para rede Particular.
+- O antivírus apagou ou bloqueou o uxplay.exe: adicione a pasta Liftstream às exceções do antivírus. É comum antivírus desconfiarem de programas sem assinatura paga.
+- A imagem travou: feche o espelhamento no iPhone e espelhe de novo.
+- Para pedir ajuda, mande o arquivo Liftstream.log da pasta %LOCALAPPDATA%\Liftstream (cole isso na barra de endereço do Explorador de Arquivos).
+
+Código e licenças: https://github.com/edsonlifts/liftstream
+Clínica Lifts · saúde 100% online

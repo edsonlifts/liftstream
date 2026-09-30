@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- .NET Framework 4.8 já vem no Windows 10 e 11: o app fica pequeno e ninguém instala nada. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>Liftstream</AssemblyName>
+    <RootNamespace>Liftstream</RootNamespace>
+    <Version>1.0.1</Version>
+    <Company>Clínica Lifts</Company>
+    <Product>Liftstream</Product>
+    <ApplicationIcon>liftstream.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DebugType>none</DebugType>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Web.Extensions" />
+    <EmbeddedResource Include="logo-horizontal.png" LogicalName="logo-horizontal.png" />
+  </ItemGroup>
+
+</Project>

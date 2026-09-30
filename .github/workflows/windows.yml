@@ -1,0 +1,120 @@
+name: Windows
+
+# Compila o Liftstream para Windows numa máquina Windows do GitHub, prova a cópia sem o MSYS2 e, quando há um release,
+# anexa o Liftstream-Windows.zip a ele. O release do Mac (./publicar.sh) dispara isto sozinho.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release que recebe o zip (por exemplo v1.0.1). Vazio: só compila e prova, sem publicar."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versão
+        id: versao
+        shell: pwsh
+        run: |
+          $plist = Get-Content Info.plist -Raw
+          $doPlist = [regex]::Match($plist, 'CFBundleShortVersionString</key>\s*<string>([^<]+)</string>').Groups[1].Value
+          $versao = if ($env:TAG) { $env:TAG.TrimStart('v') } else { $doPlist }
+          "versao=$versao" >> $env:GITHUB_OUTPUT
+          Write-Host "Versão: $versao (release: '$env:TAG')"
+
+      - uses: msys2/setup-msys2@v2
+        id: msys2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-libplist
+            mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-gstreamer
+            mingw-w64-ucrt-x86_64-gst-plugins-base
+            mingw-w64-ucrt-x86_64-gst-plugins-good
+            mingw-w64-ucrt-x86_64-gst-plugins-bad
+            mingw-w64-ucrt-x86_64-gst-plugins-ugly
+            mingw-w64-ucrt-x86_64-gst-libav
+
+      - name: Compilar o UxPlay
+        shell: msys2 {0}
+        run: |
+          # A mesma versão do Mac: UXPLAY_COMMIT fixa o código-fonte que o AVISOS-DE-TERCEIROS aponta.
+          mkdir uxplay-src && cd uxplay-src
+          git init -q
+          git fetch -q --depth 1 https://github.com/FDH2/UxPlay.git "$(tr -d '\r\n' < ../UXPLAY_COMMIT)"
+          git checkout -q FETCH_HEAD
+          mkdir build && cd build
+          cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
+          ninja
+          ls -la uxplay.exe
+
+      - name: Compilar a janela (C#)
+        shell: pwsh
+        run: dotnet build windows/Liftstream.csproj -c Release -p:Version=${{ steps.versao.outputs.versao }} -o windows/saida
+
+      - name: Montar as pastas (envio e teste)
+        shell: msys2 {0}
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          RAIZ="$(cygpath -u "$GITHUB_WORKSPACE")"
+          cd "$RAIZ"
+          windows/empacotar-msys2.sh "$RAIZ/dist/Liftstream" "$RAIZ/uxplay-src/build/uxplay.exe"
+          windows/empacotar-msys2.sh "$RAIZ/dist/teste" "$RAIZ/uxplay-src/build/uxplay.exe" teste
+          cp windows/saida/Liftstream.exe dist/Liftstream/
+          cp windows/saida/Liftstream.exe dist/teste/
+          ls dist/Liftstream | head -30
+
+      - name: Provar sem o MSYS2
+        shell: pwsh
+        run: |
+          # Como num PC qualquer: o MSYS2 sai do caminho e o PATH do teste só tem o Windows e a pasta do app.
+          foreach ($d in @('C:\msys64', '${{ steps.msys2.outputs.msys2-location }}')) {
+            if ($d -and (Test-Path $d)) {
+              try { Rename-Item $d ($d + '-oculto') -ErrorAction Stop; Write-Host "MSYS2 escondido: $d" }
+              catch { Write-Host "não deu para esconder $d ($($_.Exception.Message)); o PATH do teste já o exclui" }
+            }
+          }
+          ./windows/provar.ps1 -Pasta "$PWD\dist\teste" -Saida "$PWD\provas"
+
+      - name: Guardar imagens e registros da prova
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provas-windows
+          path: provas/
+          if-no-files-found: ignore
+
+      - name: Zip
+        shell: pwsh
+        run: 7z a -tzip Liftstream-Windows.zip ./dist/Liftstream
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Liftstream-Windows
+          path: Liftstream-Windows.zip
+
+      - name: Anexar ao release
+        if: ${{ env.TAG != '' }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload $env:TAG Liftstream-Windows.zip --clobber

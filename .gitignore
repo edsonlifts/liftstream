@@ -5,3 +5,7 @@ __pycache__/
 .DS_Store
 # notas locais de quem mantém o projeto
 CLAUDE.md
+windows/bin/
+windows/obj/
+windows/saida/
+provas/

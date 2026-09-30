@@ -1,0 +1,5 @@
+# Os scripts rodam no Mac e no Windows; o fim de linha tem de ser LF nos dois, senão o bash do MSYS2 quebra.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.icns binary
