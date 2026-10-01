@@ -6,6 +6,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Saida
 )
 $ErrorActionPreference = 'Continue'
+# Atenção: no PowerShell $Saida e $saida são a mesma variável. Dentro deste script, só o parâmetro se chama assim.
 $script:falhas = 0
 New-Item -ItemType Directory -Force -Path $Saida | Out-Null
 
@@ -38,15 +39,15 @@ function Gst($pipeline, $pastaDeTrabalho) {
     $info.RedirectStandardOutput = $true
     $info.CreateNoWindow = $true
     $processo = [System.Diagnostics.Process]::Start($info)
-    $saida = $processo.StandardOutput.ReadToEnd()
+    $texto = $processo.StandardOutput.ReadToEnd()
     if (-not $processo.WaitForExit(180000)) { $processo.Kill() }
-    return $saida
+    return $texto
 }
 
 function Confere($nome, $pipeline, $pastaDeTrabalho) {
-    $saida = Gst $pipeline $pastaDeTrabalho
-    if ($saida -match 'Execution ended') { Ok $nome } else { Falhou $nome ($saida -split "`n" | Select-Object -Last 12) }
-    return $saida
+    $resultado = Gst $pipeline $pastaDeTrabalho
+    if ($resultado -match 'Execution ended') { Ok $nome } else { Falhou $nome ($resultado -split "`n" | Select-Object -Last 12) }
+    return $resultado
 }
 
 # 1) Os elementos que o UxPlay e o app usam.
@@ -61,8 +62,8 @@ $sons = @('directsoundsink', 'wasapisink', 'wasapi2sink') | Where-Object { & $gi
 if ($sons) { Ok "saída de áudio: $($sons -join ', ')" } else { Falhou "nenhuma saída de áudio do Windows" }
 
 # 2) Decodificação como o UxPlay faz (decodebin) até o JPEG multipart do app.
-$saida = Confere 'vídeo H.264 -> JPEG' '-v videotestsrc num-buffers=60 ! video/x-raw,width=590,height=1280 ! x264enc tune=zerolatency ! h264parse ! decodebin ! videoconvert ! videoscale ! queue leaky=downstream max-size-buffers=2 ! jpegenc quality=85 ! multipartmux boundary=espelhopip ! fakesink'
-$decodificador = ([regex]::Matches($saida, '(avdec_h264|d3d11h264dec|d3d12h264dec|mfh264dec)') | Select-Object -First 1).Value
+$textoVideo = Confere 'vídeo H.264 -> JPEG' '-v videotestsrc num-buffers=60 ! video/x-raw,width=590,height=1280 ! x264enc tune=zerolatency ! h264parse ! decodebin ! videoconvert ! videoscale ! queue leaky=downstream max-size-buffers=2 ! jpegenc quality=85 ! multipartmux boundary=espelhopip ! fakesink'
+$decodificador = ([regex]::Matches($textoVideo, '(avdec_h264|d3d11h264dec|d3d12h264dec|mfh264dec)') | Select-Object -First 1).Value
 Write-Host "       decodebin escolheu: $decodificador"
 Confere 'áudio AAC decodificado' 'audiotestsrc num-buffers=80 ! audioconvert ! avenc_aac ! aacparse ! avdec_aac ! audioconvert ! audioresample quality=10 ! volume ! level ! fakesink' | Out-Null
 
@@ -95,18 +96,18 @@ TestaUxPlay 'UxPlay' 7400 '' $Pasta 'uxplay'
 TestaUxPlay 'UxPlay com -mp4' 7410 '-mp4 iPhone_2026-09-30_15.00.00' $comEspaco 'uxplay-mp4'
 
 # 5) O app inteiro: janela, UxPlay embutido, padrão de teste no lugar do iPhone, imagens do que ele desenha.
-function RodaApp($rotulo, $pasta, $variaveis, $esperar, $alimentar) {
-    New-Item -ItemType Directory -Force -Path $pasta | Out-Null
-    $env:LIFTSTREAM_CAPTURA = $pasta
+function RodaApp($rotulo, $dirCaptura, $variaveis, $esperar, $alimentar) {
+    New-Item -ItemType Directory -Force -Path $dirCaptura | Out-Null
+    $env:LIFTSTREAM_CAPTURA = $dirCaptura
     foreach ($k in $variaveis.Keys) { Set-Item "Env:$k" $variaveis[$k] }
     $app = Start-Process -FilePath "$Pasta\Liftstream.exe" -PassThru
     $feeder = $null
     try {
         if ($alimentar) {
-            for ($i = 0; $i -lt 60 -and -not (Test-Path "$pasta\espera.png"); $i++) { Start-Sleep -Seconds 1 }
+            for ($i = 0; $i -lt 60 -and -not (Test-Path "$dirCaptura\espera.png"); $i++) { Start-Sleep -Seconds 1 }
             $feeder = Start-Process -FilePath "cmd.exe" -PassThru -WindowStyle Hidden -ArgumentList "/c `"`"$gl`" videotestsrc is-live=true pattern=ball ! video/x-raw,width=590,height=1280,framerate=30/1 ! videoconvert ! jpegenc ! multipartmux boundary=espelhopip ! tcpclientsink host=127.0.0.1 port=7171`""
         }
-        for ($i = 0; $i -lt $esperar -and -not (Test-Path "$pasta\$($alimentar ? 'ok.txt' : 'atualizacao.txt')"); $i++) { Start-Sleep -Seconds 1 }
+        for ($i = 0; $i -lt $esperar -and -not (Test-Path "$dirCaptura\$($alimentar ? 'ok.txt' : 'atualizacao.txt')"); $i++) { Start-Sleep -Seconds 1 }
     }
     finally {
         if ($feeder) { Stop-Process -Id $feeder.Id -Force -ErrorAction SilentlyContinue; Get-Process gst-launch-1.0 -ErrorAction SilentlyContinue | Stop-Process -Force }
