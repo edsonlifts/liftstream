@@ -15,6 +15,9 @@ namespace Liftstream
 
         Process processo;
 
+        // "ctrl+c" quando o UxPlay saiu com o Ctrl+C (o MP4 fecha direito) e "kill" quando foi preciso encerrá-lo à força.
+        public string ComoParou { get; private set; }
+
         public bool Rodando
         {
             get
@@ -128,8 +131,13 @@ namespace Liftstream
                 try
                 {
                     if (p.HasExited) return;
-                    if (!Trabalho.EnviarCtrlC(p.Id) || !p.WaitForExit(3000))
-                        if (!p.HasExited) p.Kill();
+                    if (Trabalho.EnviarCtrlC(p.Id) && p.WaitForExit(3000))
+                    {
+                        ComoParou = "ctrl+c";
+                        return;
+                    }
+                    ComoParou = "kill";
+                    if (!p.HasExited) p.Kill();
                 }
                 catch { }
             };

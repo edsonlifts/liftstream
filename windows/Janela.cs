@@ -7,6 +7,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -28,6 +29,9 @@ namespace Liftstream
 
         [StructLayout(LayoutKind.Sequential)]
         struct RECT { public int Left, Top, Right, Bottom; }
+
+        [DllImport("user32.dll")]
+        static extern int GetWindowLong(IntPtr janela, int indice);
 
         readonly ReceptorDeQuadros receptor = new ReceptorDeQuadros();
         readonly ProcessoUxPlay uxplay = new ProcessoUxPlay();
@@ -204,8 +208,7 @@ namespace Liftstream
                 Depois(3000, () =>
                 {
                     Capturar("video.png");
-                    EscreverCaptura("ok.txt", "quadro " + tamanhoDoQuadro.Width + "x" + tamanhoDoQuadro.Height);
-                    Application.Exit();
+                    AutoTeste();
                 });
             }
         }
@@ -644,6 +647,45 @@ namespace Liftstream
             Depois(120000, () =>
             {
                 EscreverCaptura("erro.txt", "nenhum quadro em 120 s");
+                Application.Exit();
+            });
+        }
+
+        // Exercita as ações do menu como um clique faria, e anota o que aconteceu em acoes.txt.
+        void AutoTeste()
+        {
+            var resultado = new StringBuilder();
+            string quadroRecebido = "quadro " + tamanhoDoQuadro.Width + "x" + tamanhoDoQuadro.Height;
+            try
+            {
+                AlternarCliques();
+                bool ligou = (GetWindowLong(Handle, -20) & WS_EX_TRANSPARENT) != 0;
+                AlternarCliques();
+                bool desligou = (GetWindowLong(Handle, -20) & WS_EX_TRANSPARENT) == 0;
+                resultado.AppendLine("cliques: ligou=" + ligou + " desligou=" + desligou + " visivel=" + Visible);
+
+                int alturaAntes = Height;
+                EscolherTamanho(900);
+                resultado.AppendLine("tamanho: " + alturaAntes + " -> " + Height + " largura " + Width);
+
+                Opacity = 0.5;
+                resultado.AppendLine("opacidade: " + Math.Round(Opacity, 2));
+                Opacity = 0.999;
+
+                menu.Show(new Point(Left + 20, Top + 20));
+                resultado.AppendLine("menu: aberto=" + menu.Visible + " itens=" + menu.Items.Count);
+                menu.Close();
+            }
+            catch (Exception e) { resultado.AppendLine("ERRO nas ações: " + e); }
+
+            var inicio = DateTime.UtcNow;
+            AlternarGravacao();
+            Depois(9000, () =>
+            {
+                resultado.AppendLine("gravacao: ligada=" + gravando + " uxplay_rodando=" + uxplay.Rodando
+                    + " como_parou=" + uxplay.ComoParou + " apos_ms=" + (int)(DateTime.UtcNow - inicio).TotalMilliseconds);
+                EscreverCaptura("acoes.txt", resultado.ToString());
+                EscreverCaptura("ok.txt", quadroRecebido);
                 Application.Exit();
             });
         }

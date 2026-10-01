@@ -106,6 +106,16 @@ function RodaApp($rotulo, $dirCaptura, $variaveis, $esperar, $alimentar) {
         if ($alimentar) {
             for ($i = 0; $i -lt 60 -and -not (Test-Path "$dirCaptura\espera.png"); $i++) { Start-Sleep -Seconds 1 }
             $feeder = Start-Process -FilePath "cmd.exe" -PassThru -WindowStyle Hidden -ArgumentList "/c `"`"$gl`" videotestsrc is-live=true pattern=ball ! video/x-raw,width=590,height=1280,framerate=30/1 ! videoconvert ! jpegenc ! multipartmux boundary=espelhopip ! tcpclientsink host=127.0.0.1 port=7171`""
+            # Uma captura da tela de verdade (as imagens do app são o que ele desenha), para ver a janela no lugar, sem borda e na frente.
+            Start-Sleep -Seconds 2
+            try {
+                Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+                $tela = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+                $imagem = [System.Drawing.Bitmap]::new($tela.Width, $tela.Height)
+                [System.Drawing.Graphics]::FromImage($imagem).CopyFromScreen($tela.Location, [System.Drawing.Point]::Empty, $tela.Size)
+                $imagem.Save("$dirCaptura\tela-real.png")
+            }
+            catch { Write-Host "       (a captura da tela real não funcionou: $($_.Exception.Message))" }
         }
         for ($i = 0; $i -lt $esperar -and -not (Test-Path "$dirCaptura\$($alimentar ? 'ok.txt' : 'atualizacao.txt')"); $i++) { Start-Sleep -Seconds 1 }
     }
@@ -125,6 +135,19 @@ foreach ($arquivo in 'espera.png', 'video.png') {
 }
 if (Test-Path "$captura\ok.txt") { Ok "app recebeu quadros do UxPlay embutido: $(Get-Content "$captura\ok.txt")" } else { Falhou "o app não mostrou nenhum quadro" (Get-Content "$captura\erro.txt" -ErrorAction SilentlyContinue) }
 if (Test-Path "$captura\atualizacao.txt") { Write-Host "       aviso de versão contra o GitHub de verdade: $(Get-Content "$captura\atualizacao.txt")" }
+
+# As ações do menu, executadas pelo próprio app no modo de teste (Janela.AutoTeste).
+$acoes = (Get-Content "$captura\acoes.txt" -ErrorAction SilentlyContinue) -join "`n"
+if ($acoes) {
+    $acoes -split "`n" | ForEach-Object { Write-Host "       $_" }
+    if ($acoes -match 'ERRO') { Falhou "ação do menu com erro" }
+    if ($acoes -match 'cliques: ligou=True desligou=True') { Ok "cliques passam e voltam a ser recebidos" } else { Falhou "cliques passando" }
+    if ($acoes -match 'tamanho: \d+ -> 900') { Ok "tamanho grande aplicado" } else { Falhou "tamanho" }
+    if ($acoes -match 'menu: aberto=True') { Ok "menu abre" } else { Falhou "menu" }
+    if ($acoes -match 'gravacao: ligada=True uxplay_rodando=True') { Ok "gravação reinicia o UxPlay" } else { Falhou "gravação" }
+    if ($acoes -match 'como_parou=ctrl\+c') { Ok "o UxPlay fecha com Ctrl+C (o MP4 fecha direito)" } else { Write-Host "       (o UxPlay foi encerrado à força: um MP4 em andamento fica sem o fecho final)" }
+}
+else { Falhou "o app não anotou as ações do menu" }
 
 # 6) O aviso de versão com uma resposta local que diz haver versão futura (a forma é a da API do GitHub).
 $json = "$Saida\nova.json"
