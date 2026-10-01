@@ -142,7 +142,8 @@ if ($acoes) {
     $acoes -split "`n" | ForEach-Object { Write-Host "       $_" }
     if ($acoes -match 'ERRO') { Falhou "ação do menu com erro" }
     if ($acoes -match 'cliques: ligou=True desligou=True') { Ok "cliques passam e voltam a ser recebidos" } else { Falhou "cliques passando" }
-    if ($acoes -match 'tamanho: \d+ -> 900') { Ok "tamanho grande aplicado" } else { Falhou "tamanho" }
+    # O Windows limita a janela à altura da tela (o runner tem 768), então basta ter crescido.
+    if ($acoes -match 'tamanho: 640 -> (\d+)' -and [int]$Matches[1] -gt 640) { Ok "tamanho grande aplicado ($($Matches[1]) de altura)" } else { Falhou "tamanho" }
     if ($acoes -match 'menu: aberto=True') { Ok "menu abre" } else { Falhou "menu" }
     if ($acoes -match 'gravacao: ligada=True uxplay_rodando=True') { Ok "gravação reinicia o UxPlay" } else { Falhou "gravação" }
     if ($acoes -match 'como_parou=ctrl\+c') { Ok "o UxPlay fecha com Ctrl+C (o MP4 fecha direito)" } else { Write-Host "       (o UxPlay foi encerrado à força: um MP4 em andamento fica sem o fecho final)" }
