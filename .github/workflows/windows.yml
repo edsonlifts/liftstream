@@ -58,7 +58,10 @@ jobs:
           git fetch -q --depth 1 https://github.com/FDH2/UxPlay.git "$(tr -d '\r\n' < ../UXPLAY_COMMIT)"
           git checkout -q FETCH_HEAD
           mkdir build && cd build
-          cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
+          # Sem NO_MARCH_NATIVE o UxPlay compila para o processador da máquina que o construiu, e em PC mais antigo ele
+          # fecha com "instrução ilegal" (0xC000001D). Já aconteceu: o teste rodou noutra máquina do GitHub.
+          cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DNO_MARCH_NATIVE=ON | tee cmake.log
+          grep -q "Not using -march=native" cmake.log || { echo "o UxPlay está sendo compilado com -march=native"; exit 1; }
           ninja
           ls -la uxplay.exe
 
